@@ -1,8 +1,11 @@
 package study.querydsl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static study.querydsl.entity.QMember.member;
 
+import com.querydsl.core.QueryResults;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import java.util.List;
 import javax.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -58,18 +61,88 @@ public class QuerydslBasicTest {
     @Test
     public void startQuerydsl(){
         /** 쿼리dsl의 장점
-         *  1.자동으로 prepared Connection을 사용하여 쿼리 삽입 공격에 안전하다
+         *  1. 자동으로 prepared Connection을 사용하여 쿼리 삽입 공격에 안전하다
          *  2. 컴파일 시점에 오류를 찾아낼 수 있다. -주요 사용 이유-
          */
         
-        QMember m = new QMember("m");
+//        QMember m = new QMember("m");
         
         Member findMember = queryFactory
-                .select(m)
-                .from(m)
-                .where(m.username.eq("member1"))
+                .select(member)
+                .from(member)
+                .where(member.username.eq("member1"))
                 .fetchOne();
         
         assertThat(findMember.getUsername()).isEqualTo("member1");
+    }
+    
+    @Test
+    public void search(){
+        Member findMember = queryFactory
+            .selectFrom(member)
+            .where(member.username.eq("member1")
+                    .and(member.age.eq(10)))
+            .fetchOne();
+        
+        assertThat(findMember.getUsername()).isEqualTo("member1");
+    }
+    
+    @Test
+    public void searchAndParam(){
+        Member findMember = queryFactory
+            .selectFrom(member)
+            .where(
+                member.username.eq("member1"),
+                member.age.eq(10))
+            .fetchOne();
+        
+        assertThat(findMember.getUsername()).isEqualTo("member1");
+    }
+    
+    @Test
+    public void resultFetch(){
+    
+        /** fetch()
+         *  : 리스트 조회, 데이터 없으면 빈 리스트 반환
+         */
+        List<Member> fetch = queryFactory
+            .selectFrom(member)
+            .fetch();
+        
+        /** fetchOne() : 단 건 조회
+         *  결과가 없으면 : null
+         *  결과가 둘 이상이면 : com.querydsl.core.NonUniqueResultException
+         */
+        Member fetchOne = queryFactory
+            .selectFrom(member)
+            .fetchOne();
+        
+        /** fetchFirst()
+         *  : limit(1).fetchOne()
+         */
+        Member fetchFirst = queryFactory
+            .selectFrom(member)
+            .fetchFirst();
+        
+        /** fetchResults()
+         *  : 페이징 정보 포함, total count 쿼리 추가 실행
+         *  select count, select ~
+         *  1. 페이지를 위한 정보의 갯수와 2. 얻고자 하는 데이터
+         *  총 2개의 쿼리를 보내어 데이터를얻는다.
+         *
+         *  성능이 중요한 페이지에서는 fetchResult를 사용해서는 안된다.
+         *  쿼리 도막을 나눠서 따로 보내는 것이 더 좋다.
+         */
+        QueryResults<Member> results = queryFactory
+            .selectFrom(member)
+            .fetchResults();
+        
+        results.getTotal();
+        List<Member> content = results.getResults();
+        
+        long total = queryFactory
+            .selectFrom(member)
+            .fetchCount();
+        
     }
 }
