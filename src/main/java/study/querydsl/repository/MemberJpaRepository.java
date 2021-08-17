@@ -8,7 +8,6 @@ import java.util.Optional;
 import javax.persistence.EntityManager;
 import org.springframework.stereotype.Repository;
 import study.querydsl.entity.Member;
-import study.querydsl.entity.QMember;
 
 @Repository
 public class MemberJpaRepository {
