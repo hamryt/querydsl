@@ -38,6 +38,9 @@ class MemberJpaRepositoryTest {
         assertThat(result2).containsExactly(member);
     }
     
+    /**
+     * 동적 쿼리와 성능 최적화 조회 - Builder 사용
+     */
     @Test
     public void searchTest(){
         Team teamA = new Team("teamA");
