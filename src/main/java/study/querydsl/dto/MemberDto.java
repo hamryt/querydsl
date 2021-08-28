@@ -3,7 +3,6 @@ package study.querydsl.dto;
 import com.querydsl.core.annotations.QueryProjection;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.data.jpa.repository.Query;
 
 @Data
 @NoArgsConstructor
