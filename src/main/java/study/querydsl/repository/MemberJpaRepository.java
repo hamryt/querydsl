@@ -1,10 +1,13 @@
 package study.querydsl.repository;
 
 import static org.springframework.util.StringUtils.hasText;
+import static org.springframework.util.StringUtils.isEmpty;
 import static study.querydsl.entity.QMember.member;
 import static study.querydsl.entity.QTeam.team;
 
 import com.querydsl.core.BooleanBuilder;
+import com.querydsl.core.types.Predicate;
+import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.util.List;
 import java.util.Optional;
@@ -86,4 +89,69 @@ public class MemberJpaRepository {
             .where(builder)
             .fetch();
     }
+    
+    public List<MemberTeamDto> search(MemberSearchCondition condition) {
+        return queryFactory
+            .select(new QMemberTeamDto(
+                member.id,
+                member.username,
+                member.age,
+                team.id,
+                team.name))
+            .from(member)
+            .leftJoin(member.team, team)
+            .where(usernameEq(condition.getUsername()),
+                teamNameEq(condition.getTeamName()),
+                ageGoe(condition.getAgeGoe()),
+                ageLoe(condition.getAgeLoe()))
+            .fetch();
+    }
+    
+    private Predicate ageLoe(Integer ageLoe) {
+        return ageLoe == null ? null : member.age.loe(ageLoe);
+    }
+    
+    private Predicate ageGoe(Integer ageGoe) {
+        return ageGoe == null ? null : member.age.goe(ageGoe);
+    }
+    
+    private Predicate teamNameEq(String teamName) {
+        return hasText(teamName) ? team.name.eq(teamName) : null;
+    }
+    
+    private Predicate usernameEq(String username) {
+        return hasText(username) ? member.username.eq(username) : null;
+    }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
