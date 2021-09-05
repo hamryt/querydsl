@@ -72,6 +72,7 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom{
             .limit(pageable.getPageSize())
             .fetch();
         
+        
         long total = queryFactory
             .select(member)
             .from(member)
