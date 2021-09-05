@@ -6,6 +6,7 @@ import static study.querydsl.entity.QTeam.team;
 
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.types.Predicate;
+import com.querydsl.jpa.JPQLQuery;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.util.List;
@@ -13,22 +14,54 @@ import javax.persistence.EntityManager;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.support.QuerydslRepositorySupport;
 import org.springframework.data.support.PageableExecutionUtils;
 import study.querydsl.dto.MemberSearchCondition;
 import study.querydsl.dto.MemberTeamDto;
 import study.querydsl.dto.QMemberTeamDto;
 import study.querydsl.entity.Member;
 
-public class MemberRepositoryImpl implements MemberRepositoryCustom{
+/**
+ * QuerydslRepositorySupport
+ * 장점:
+ * 1. EntityManager를 알아서 주입해준다.
+ * 2. getQuerydel().applyPagination() 스프링 데이터가 제공하는 페이징을 Querydsl로 편리하게 변환가능(단, sort는 오류 발생할 수 있음)
+ *
+ * 단점:
+ * 1. from으로 시작
+ * 2. queryfactory를 제공하지 않음
+ * 3. 스프링 데이터 sort 기능이 정상 동작하지 않음
+ */
+
+public class MemberRepositoryImpl extends QuerydslRepositorySupport implements MemberRepositoryCustom {
     
     private final JPAQueryFactory queryFactory;
     
     public MemberRepositoryImpl(EntityManager em) {
+        super(Member.class);
         this.queryFactory = new JPAQueryFactory(em);
     }
     
     @Override
     public List<MemberTeamDto> search(MemberSearchCondition condition) {
+        
+        EntityManager entityManager = getEntityManager();
+        
+        List<MemberTeamDto> result = from(member)
+            .leftJoin(member.team, team)
+            .where(usernameEq(condition.getUsername()),
+                teamNameEq(condition.getTeamName()),
+                ageGoe(condition.getAgeGoe()),
+                ageLoe(condition.getAgeLoe())
+            )
+            .select(new QMemberTeamDto(
+                member.id.as("memberId"),
+                member.username,
+                member.age,
+                team.id.as("teamId"),
+                team.name.as("teamName")))
+            .fetch();
+            
         return queryFactory
             .select(new QMemberTeamDto(
                 member.id,
@@ -88,6 +121,38 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom{
             .fetchCount();
         
         return new PageImpl<>(content, pageable, total);
+    }
+    
+    public Page<MemberTeamDto> searchPageSimple2(MemberSearchCondition condition,
+        Pageable pageable) {
+            JPQLQuery<MemberTeamDto> jpaQuery = from(member)
+            .leftJoin(member.team, team)
+            .where(
+                usernameEq(condition.getUsername()),
+                teamNameEq(condition.getTeamName()),
+                ageGoe(condition.getAgeGoe()),
+                ageLoe(condition.getAgeLoe()))
+            .select(new QMemberTeamDto(
+                    member.id,
+                    member.username,
+                    member.age,
+                    team.id,
+                    team.name));
+            
+        JPQLQuery<MemberTeamDto> query = getQuerydsl().applyPagination(pageable, jpaQuery);
+        
+        long total = queryFactory
+            .select(member)
+            .from(member)
+            .leftJoin(member.team, team)
+            .where(
+                usernameEq(condition.getUsername()),
+                teamNameEq(condition.getTeamName()),
+                ageGoe(condition.getAgeGoe()),
+                ageLoe(condition.getAgeLoe()))
+            .fetchCount();
+        
+        return new PageImpl<>(query.fetch(), pageable, total);
     }
     
     /**
