@@ -10,5 +10,4 @@ public class MemberSearchCondition {
     private Integer ageGoe;
     private Integer ageLoe;
     
-    
 }
